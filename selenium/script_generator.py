@@ -1,8 +1,16 @@
 import json
 import re
 from pathlib import Path
+from typing import Any, Mapping
 
-from schemas import TestPlan
+
+BY_ALIASES = {
+    "css selector": "css",
+    "css": "css",
+    "xpath": "xpath",
+    "id": "id",
+    "name": "name",
+}
 
 
 def safe_filename(name: str) -> str:
@@ -15,12 +23,39 @@ def safe_filename(name: str) -> str:
     return name.strip("_") or "generated_test"
 
 
+def normalize_plan(plan: Mapping[str, Any]) -> dict[str, Any]:
+    """Normalize inference JSON into the structure used by generated scripts."""
+    normalized_steps = []
+
+    for step in plan.get("steps", []):
+        normalized_step = dict(step)
+        by = normalized_step.get("by")
+        selector = normalized_step.get("selector")
+
+        if by:
+            normalized_step["by"] = BY_ALIASES.get(str(by).lower(), by)
+
+        if selector and not normalized_step.get("target"):
+            normalized_step["target"] = selector
+
+        if normalized_step.get("action") == "navigate" and not normalized_step.get("target"):
+            normalized_step["target"] = normalized_step.get("value") or plan.get("base_url")
+
+        normalized_steps.append(normalized_step)
+
+    return {
+        "name": plan.get("name") or plan.get("test_name") or "Generated Selenium Test",
+        "base_url": plan.get("base_url"),
+        "steps": normalized_steps,
+    }
+
+
 def generate_selenium_script(
-    plan: TestPlan,
+    plan: Mapping[str, Any],
     output_dir: str = "generated_tests"
 ) -> Path:
     """
-    Generate a Selenium Python script from a validated TestPlan.
+    Generate a Selenium Python script from inference result JSON.
 
     The generated script:
     - Executes test steps one by one
@@ -31,10 +66,11 @@ def generate_selenium_script(
 
     Path(output_dir).mkdir(exist_ok=True)
 
-    safe_name = safe_filename(plan.name)
+    normalized_plan = normalize_plan(plan)
+    safe_name = safe_filename(normalized_plan["name"])
     file_path = Path(output_dir) / f"{safe_name}.py"
 
-    steps_json = json.dumps(plan.model_dump(), indent=2)
+    steps_json = json.dumps(normalized_plan, indent=2)
 
     script = f'''
 import os
@@ -195,13 +231,11 @@ def run():
 
     options = Options()
     options.add_argument("--start-maximized")
-
-    # Uncomment these for Linux server / Azure container execution:
-    # options.add_argument("--headless=new")
-    # options.add_argument("--no-sandbox")
-    # options.add_argument("--disable-dev-shm-usage")
-    # options.add_argument("--disable-gpu")
-    # options.add_argument("--window-size=1920,1080")
+    options.add_argument("--headless=new")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
 
     driver = webdriver.Chrome(options=options)
     wait = WebDriverWait(driver, 15)
@@ -278,7 +312,6 @@ def run():
 
                     element.click()
 
-                    # Give SPA/router a moment if click causes navigation/rendering.
                     time.sleep(1)
 
                     add_result(
@@ -308,7 +341,7 @@ def run():
                     )
 
                 elif action == "assert_visible":
-                    element = find_element(
+                    find_element(
                         driver,
                         wait,
                         step,
@@ -320,7 +353,7 @@ def run():
                         index,
                         action,
                         "PASS",
-                        description or f"Element visible"
+                        description or "Element visible"
                     )
 
                 elif action == "assert_url_contains":
