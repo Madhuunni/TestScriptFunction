@@ -233,6 +233,34 @@
           "description": "Click the button using dynamic attribute selector"
         }
       ]
+    },
+    "find_tag_text_compare": {
+      "test_name": "Dynamic Tag Text Compare Test",
+      "base_url": "__URL__",
+      "steps": [
+        {
+          "step_no": "__AUTO_STEP_NO__",
+          "action": "navigate",
+          "element": null,
+          "by": null,
+          "selector": null,
+          "value": "__URL__",
+          "value_from_env": null,
+          "description": "Navigate to the application URL"
+        },
+        {
+          "step_no": "__AUTO_STEP_NO__",
+          "action": "assert_text",
+          "element": "__TEXT_TAG__",
+          "tag_name": "__TEXT_TAG__",
+          "attribute_name": "__TEXT_ATTRIB_NAME__",
+          "by": "css selector",
+          "selector": "__TEXT_TAG__[__TEXT_ATTRIB_NAME__='__TEXT_FIELD_ID__']",
+          "value": "__TEXT_VALUE__",
+          "value_from_env": null,
+          "description": "Find the dynamic tag by attribute and compare its text value"
+        }
+      ]
     }
   },
   "max_len": 900,

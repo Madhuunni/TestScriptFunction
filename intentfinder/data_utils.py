@@ -21,6 +21,7 @@ SLOT_NAMES = [
     "ENV_VALUE",
     "CLICK_ATTRIB_NAME",
     "CLICK_ID",
+    "ELEMENT_TAG",
 ]
 LABELS = ["O"]
 for slot in SLOT_NAMES:
@@ -38,6 +39,14 @@ ATTR_RE = re.compile(
 ID_RE = re.compile(r"id\s*=\s*['\"]([^'\"]+)['\"]", re.IGNORECASE)
 QUOTED_RE = re.compile(r"'([^']*)'")
 ENV_RE = re.compile(r"\b[A-Z][A-Z0-9_]{2,}\b")
+
+TAG_RE = re.compile(r"\b(?:tag|element)\s+([A-Za-z][A-Za-z0-9_-]*)\b", re.IGNORECASE)
+FIND_TAG_RE = re.compile(r"\b(?:find|locate)\s+(?P<tag>[A-Za-z][A-Za-z0-9_-]*)\b", re.IGNORECASE)
+TEXT_COMPARE_RE = re.compile(
+    r"(?:compare|verify|check|assert)[^.]{0,80}?(?:text\s+value|text|value)[^.]{0,40}?(?:is|equals|equal\s+to|to\s+be)\s*['\"](?P<text>[^'\"]+)['\"]",
+    re.IGNORECASE,
+)
+GET_TEXT_RE = re.compile(r"\bget\s+the\s+text\s+value\b|\btext\s+value\b", re.IGNORECASE)
 
 # Pair regexes. Each pattern must expose named groups:
 #   attr, field_id and one of value/env.
@@ -225,15 +234,43 @@ def extract_field_pairs(text: str) -> List[Dict[str, Optional[str]]]:
     return out
 
 
+
+def extract_text_assertion(text: str) -> Optional[Dict[str, Optional[str]]]:
+    """Extract a tag + attribute selector + expected text assertion.
+
+    Example:
+      find mat-card-title having the attribute class='mat-mdc-card-title'
+      and get the text value. Compare the text value is 'Sales Overview'
+    """
+    if not GET_TEXT_RE.search(text):
+        return None
+
+    tag_match = FIND_TAG_RE.search(text) or TAG_RE.search(text)
+    attr_match = ATTR_RE.search(text)
+    text_match = TEXT_COMPARE_RE.search(text)
+
+    if not tag_match or not attr_match or not text_match:
+        return None
+
+    tag = tag_match.group("tag") if "tag" in tag_match.groupdict() else tag_match.group(1)
+    return {
+        "tag_name": tag,
+        "attribute_name": attr_match.group("attr"),
+        "id": attr_match.group("field_id"),
+        "value": text_match.group("text"),
+    }
+
 def extract_slots_by_rules(text: str, intent: Optional[str] = None) -> Dict[str, Any]:
     url = extract_url(text)
     click = extract_click_attr(text) if intent == "navigate_click_by_id" else None
-    fields = [] if intent == "navigate_click_by_id" else extract_field_pairs(text)
+    text_assertion = extract_text_assertion(text)
+    fields = [] if intent in {"navigate_click_by_id", "find_tag_text_compare"} or text_assertion else extract_field_pairs(text)
     return {
         "url": url,
         "fields": fields,
         "click_id": click.get("id") if click else None,
         "click_attribute_name": click.get("attribute_name") if click else None,
+        "text_assertion": text_assertion,
     }
 
 
@@ -255,6 +292,10 @@ def find_slot_spans(text: str, intent: Optional[str] = None) -> List[Tuple[int, 
         spans.append((m.start("field_id"), m.end("field_id"), attr_value_label))
         attr_spans.append((m.start("attr"), m.end("attr")))
         attr_spans.append((m.start("field_id"), m.end("field_id")))
+
+    tag_match = FIND_TAG_RE.search(text) if intent == "find_tag_text_compare" else None
+    if tag_match:
+        spans.append((tag_match.start("tag"), tag_match.end("tag"), "ELEMENT_TAG"))
 
     # Quoted strings that are not attribute='...' are literal field values.
     quoted_value_spans = []
@@ -394,7 +435,10 @@ def infer_intent_by_rules(text: str, parsed: Dict[str, Any]) -> Optional[str]:
     has_click_word = any(word in lower for word in ["click", "submit", "press", "login", "sign in", "save"])
     has_fields = bool(parsed.get("fields"))
     has_click_id = bool(parsed.get("click_id"))
+    has_text_assertion = bool(parsed.get("text_assertion")) or ("get the text" in lower and "compare" in lower)
 
+    if has_text_assertion:
+        return "find_tag_text_compare"
     if has_click_id and not has_fields:
         return "navigate_click_by_id"
     if has_fields and has_click_word:
@@ -420,6 +464,14 @@ def _replace_string(value: str, replacements: Dict[str, Any]) -> Any:
         return replacements.get("CLICK_ATTRIB_NAME")
     if value == "__ATTRIB_NAME__":
         return replacements.get("ATTRIB_NAME")
+    if value == "__TEXT_TAG__":
+        return replacements.get("TEXT_TAG")
+    if value == "__TEXT_ATTRIB_NAME__":
+        return replacements.get("TEXT_ATTRIB_NAME")
+    if value == "__TEXT_FIELD_ID__":
+        return replacements.get("TEXT_FIELD_ID")
+    if value == "__TEXT_VALUE__":
+        return replacements.get("TEXT_VALUE")
     if value == "__AUTO_STEP_NO__":
         return replacements.get("AUTO_STEP_NO")
 
@@ -452,6 +504,7 @@ def render_template(template: Any, parsed: Dict[str, Any]) -> Any:
     fields = parsed.get("fields") or []
     click_id = parsed.get("click_id")
     click_attr = parsed.get("click_attribute_name") or "id"
+    text_assertion = parsed.get("text_assertion") or {}
 
     steps = []
     step_no = 1
@@ -477,6 +530,10 @@ def render_template(template: Any, parsed: Dict[str, Any]) -> Any:
             "CLICK_ATTRIB_NAME": click_attr,
             "CLICK_ID": click_id,
             "AUTO_STEP_NO": step_no,
+            "TEXT_TAG": text_assertion.get("tag_name"),
+            "TEXT_ATTRIB_NAME": text_assertion.get("attribute_name"),
+            "TEXT_FIELD_ID": text_assertion.get("id"),
+            "TEXT_VALUE": text_assertion.get("value"),
         }
         rendered = _replace_any(step, replacements)
         steps.append(rendered)

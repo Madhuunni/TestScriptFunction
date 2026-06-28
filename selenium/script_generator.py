@@ -437,16 +437,30 @@ def run():
                             "assert_text requires value"
                         )
 
-                    wait.until(
-                        lambda d: value in d.find_element(By.TAG_NAME, "body").text
-                    )
+                    if get_locators(step):
+                        element = find_element(
+                            driver,
+                            wait,
+                            step,
+                            condition_type="visible"
+                        )
+                        actual_text = element.text.strip()
+
+                        if actual_text != str(value):
+                            raise RuntimeError(
+                                f"Expected text '{{value}}' but found '{{actual_text}}'"
+                            )
+                    else:
+                        wait.until(
+                            lambda d: value in d.find_element(By.TAG_NAME, "body").text
+                        )
 
                     add_result(
                         results,
                         index,
                         action,
                         "PASS",
-                        f"Text found: {{value}}"
+                        f"Text matched: {{value}}"
                     )
 
                 elif action == "assert_visible":
