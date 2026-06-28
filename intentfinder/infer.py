@@ -50,6 +50,7 @@ def predict(prompt: str, artifact_dir: str = "artifacts_nfields", repair_with_ru
         "fields": build_fields_from_slot_lists(raw_slot_lists),
         "click_id": raw_slot_lists.get("CLICK_ID", [None])[0],
         "click_attribute_name": raw_slot_lists.get("CLICK_ATTRIB_NAME", ["id"])[0],
+        "text_assertion": None,
     }
 
     if repair_with_rules:
@@ -62,6 +63,8 @@ def predict(prompt: str, artifact_dir: str = "artifacts_nfields", repair_with_ru
             parsed["click_id"] = repaired["click_id"]
         if repaired.get("click_attribute_name"):
             parsed["click_attribute_name"] = repaired["click_attribute_name"]
+        if repaired.get("text_assertion"):
+            parsed["text_assertion"] = repaired["text_assertion"]
 
     model_intent = intent
     if repair_intent:

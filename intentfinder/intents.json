@@ -1,6 +1,6 @@
 {
-  "schema_version": "dynamic_n_fields_attributes_v1",
-  "description": "Generalized intent JSON. ATTRIB_NAME/FIELD_ID/FIELD_VALUE/ENV_VALUE can repeat N times; renderer expands __FIELDS__ into dynamic selectors like input[__ATTRIB_NAME__='__FIELD_ID__'].",
+  "schema_version": "dynamic_n_fields_attributes_tags_v2",
+  "description": "Generalized intent JSON. ATTRIB_NAME/FIELD_ID/FIELD_VALUE/ENV_VALUE can repeat N times; renderer expands __FIELDS__ into dynamic selectors like input[__ATTRIB_NAME__='__FIELD_ID__']. Text assertions can locate an ordered tag with __TEXT_TAG__[__TEXT_ATTRIB_NAME__='__TEXT_FIELD_ID__'] and compare its text value.",
   "intents": [
     {
       "tag": "navigate_only",
@@ -7978,6 +7978,46 @@
               "value": null,
               "value_from_env": null,
               "description": "Click the button using dynamic attribute selector"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "find_tag_text_compare",
+      "patterns": [
+        "Find mat-card-title having the attribute class='mat-mdc-card-title' and get the text value. Compare the text value is 'Sales Overview'.",
+        "Locate h1 having class='page-title' and get the text value. Verify the text value equals 'Dashboard'.",
+        "Find span having data-testid='status-label' and get the text value. Check the text value is 'Active'.",
+        "Find div having aria-label='summary-card' and get the text value. Compare the text value is 'Revenue'.",
+        "Locate mat-card-subtitle having class='mat-mdc-card-subtitle' and get the text value. Assert the text value equals 'Quarterly Metrics'."
+      ],
+      "responses": [
+        {
+          "test_name": "Dynamic Tag Text Compare Test",
+          "base_url": "__URL__",
+          "steps": [
+            {
+              "step_no": "__AUTO_STEP_NO__",
+              "action": "navigate",
+              "element": null,
+              "by": null,
+              "selector": null,
+              "value": "__URL__",
+              "value_from_env": null,
+              "description": "Navigate to the application URL"
+            },
+            {
+              "step_no": "__AUTO_STEP_NO__",
+              "action": "assert_text",
+              "element": "__TEXT_TAG__",
+              "tag_name": "__TEXT_TAG__",
+              "attribute_name": "__TEXT_ATTRIB_NAME__",
+              "by": "css selector",
+              "selector": "__TEXT_TAG__[__TEXT_ATTRIB_NAME__='__TEXT_FIELD_ID__']",
+              "value": "__TEXT_VALUE__",
+              "value_from_env": null,
+              "description": "Find the dynamic tag by attribute and compare its text value"
             }
           ]
         }
