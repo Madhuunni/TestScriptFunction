@@ -38,17 +38,37 @@ def infer(prompt: str) -> dict[str, Any]:
     return result_json
 
 
+def resolve_repo_path(path: Path) -> Path:
+    """Return an absolute path, resolving relative paths from the repo root."""
+    if path.is_absolute():
+        return path
+
+    return REPO_ROOT / path
+
+
+def repo_relative_path(path: Path) -> str:
+    """Return a repo-relative path for response payloads when possible."""
+    absolute_path = resolve_repo_path(path).resolve()
+
+    try:
+        return str(absolute_path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(absolute_path)
+
+
 def execute_selenium_script(script_path: Path) -> dict[str, Any]:
     """Execute a generated Selenium script and return process/report details."""
+    absolute_script_path = resolve_repo_path(script_path)
+
     completed = subprocess.run(
-        [sys.executable, str(script_path)],
-        cwd=script_path.parent,
+        [sys.executable, str(absolute_script_path)],
+        cwd=absolute_script_path.parent,
         capture_output=True,
         text=True,
         check=False,
     )
 
-    report_path = script_path.parent / "reports" / "latest_result.json"
+    report_path = absolute_script_path.parent / "reports" / "latest_result.json"
     report: Any = None
     if report_path.exists():
         report = json.loads(report_path.read_text(encoding="utf-8"))
@@ -69,7 +89,10 @@ def handle_prompt(request: PromptRequest) -> dict[str, Any]:
     """
     try:
         result_json = infer(request.prompt)
-        script_path = generate_selenium_script(result_json)
+        script_path = generate_selenium_script(
+            result_json,
+            output_dir=str(REPO_ROOT / "generated_tests"),
+        )
         execution = execute_selenium_script(script_path)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -77,6 +100,6 @@ def handle_prompt(request: PromptRequest) -> dict[str, Any]:
     return {
         "prompt": request.prompt,
         "plan": result_json,
-        "script_path": str(script_path.relative_to(REPO_ROOT)),
+        "script_path": repo_relative_path(script_path),
         "execution": execution,
     }
