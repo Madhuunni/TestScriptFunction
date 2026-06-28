@@ -4,6 +4,11 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
+PERSISTENT_BROWSER_HOST = "127.0.0.1"
+PERSISTENT_BROWSER_PORT = 9222
+PERSISTENT_BROWSER_USER_DATA_DIR = ".selenium_chrome_profile"
+
+
 BY_ALIASES = {
     "css selector": "css",
     "css": "css",
@@ -75,7 +80,11 @@ def generate_selenium_script(
     script = f'''
 import os
 import json
+import shutil
+import subprocess
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 from selenium import webdriver
@@ -86,6 +95,17 @@ from selenium.webdriver.support import expected_conditions as EC
 
 
 PLAN = {steps_json!r}
+PERSISTENT_BROWSER_HOST = {PERSISTENT_BROWSER_HOST!r}
+PERSISTENT_BROWSER_PORT = int(os.getenv("SELENIUM_REMOTE_DEBUGGING_PORT", "{PERSISTENT_BROWSER_PORT}"))
+PERSISTENT_BROWSER_USER_DATA_DIR = os.getenv(
+    "SELENIUM_CHROME_USER_DATA_DIR",
+    str(Path(__file__).resolve().parent / {PERSISTENT_BROWSER_USER_DATA_DIR!r})
+)
+PERSISTENT_BROWSER_HEADLESS = os.getenv("SELENIUM_HEADLESS", "false").lower() in {{
+    "1",
+    "true",
+    "yes",
+}}
 
 
 def get_by(by_name):
@@ -224,20 +244,109 @@ def add_result(results, step_index, action, status, message, screenshot=None):
     results.append(item)
 
 
+def is_persistent_chrome_running():
+    """
+    Return True when the shared Chrome remote-debugging endpoint is available.
+    """
+    url = f"http://{{PERSISTENT_BROWSER_HOST}}:{{PERSISTENT_BROWSER_PORT}}/json/version"
+
+    try:
+        with urllib.request.urlopen(url, timeout=1):
+            return True
+    except (urllib.error.URLError, TimeoutError):
+        return False
+
+
+def find_chrome_binary():
+    """
+    Find a Chrome/Chromium executable for the persistent browser process.
+    """
+    configured_binary = os.getenv("CHROME_BINARY")
+
+    if configured_binary:
+        return configured_binary
+
+    for candidate in (
+        "google-chrome",
+        "google-chrome-stable",
+        "chromium",
+        "chromium-browser",
+    ):
+        binary = shutil.which(candidate)
+
+        if binary:
+            return binary
+
+    raise RuntimeError(
+        "Unable to find Chrome/Chromium. Set CHROME_BINARY to the browser executable."
+    )
+
+
+def start_persistent_chrome():
+    """
+    Start a Chrome process that is intentionally reused by later prompt requests.
+    """
+    if is_persistent_chrome_running():
+        return
+
+    Path(PERSISTENT_BROWSER_USER_DATA_DIR).mkdir(parents=True, exist_ok=True)
+
+    command = [
+        find_chrome_binary(),
+        f"--remote-debugging-address={{PERSISTENT_BROWSER_HOST}}",
+        f"--remote-debugging-port={{PERSISTENT_BROWSER_PORT}}",
+        f"--user-data-dir={{PERSISTENT_BROWSER_USER_DATA_DIR}}",
+        "--start-maximized",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--window-size=1920,1080",
+    ]
+
+    if PERSISTENT_BROWSER_HEADLESS:
+        command.append("--headless=new")
+
+    subprocess.Popen(
+        command,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+
+    deadline = time.time() + 15
+
+    while time.time() < deadline:
+        if is_persistent_chrome_running():
+            return
+
+        time.sleep(0.25)
+
+    raise RuntimeError("Timed out waiting for persistent Chrome to start")
+
+
+def create_driver():
+    """
+    Attach Selenium to the shared browser instead of creating a one-off browser.
+    """
+    start_persistent_chrome()
+
+    options = Options()
+    options.add_experimental_option(
+        "debuggerAddress",
+        f"{{PERSISTENT_BROWSER_HOST}}:{{PERSISTENT_BROWSER_PORT}}",
+    )
+
+    return webdriver.Chrome(options=options)
+
+
 def run():
     results = []
 
     Path("reports").mkdir(exist_ok=True)
 
-    options = Options()
-    options.add_argument("--start-maximized")
-    options.add_argument("--headless=new")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080")
-
-    driver = webdriver.Chrome(options=options)
+    driver = create_driver()
     wait = WebDriverWait(driver, 15)
 
     try:
@@ -390,7 +499,10 @@ def run():
                 break
 
     finally:
-        driver.quit()
+        # Keep the shared Chrome browser open so the next prompt request can
+        # continue in the same browser/session. Only stop this request's
+        # ChromeDriver service to avoid leaving an extra driver process behind.
+        driver.service.stop()
 
     with open("reports/latest_result.json", "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
