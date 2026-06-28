@@ -84,7 +84,7 @@ def predict(prompt: str, artifact_dir: str = "artifacts_nfields", repair_with_ru
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--artifacts", default="artifacts_nfields")
+    parser.add_argument("--artifacts", default="artifacts_attributes")
     parser.add_argument("--prompt", required=True)
     parser.add_argument("--no-repair", action="store_true")
     parser.add_argument("--no-intent-repair", action="store_true")

@@ -3,10 +3,6 @@ from torch import nn
 
 
 class IntentClassifier(nn.Module):
-    """Character-level intent classifier + generic BIO slot tagger.
-
-    Slots are reusable: FIELD_ID and FIELD_VALUE can appear N times.
-    """
 
     def __init__(
         self,
