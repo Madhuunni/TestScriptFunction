@@ -89,7 +89,9 @@
     "B-CLICK_ATTRIB_NAME": 11,
     "I-CLICK_ATTRIB_NAME": 12,
     "B-CLICK_ID": 13,
-    "I-CLICK_ID": 14
+    "I-CLICK_ID": 14,
+    "B-ELEMENT_TAG": 15,
+    "I-ELEMENT_TAG": 16
   },
   "id2label": {
     "0": "O",
@@ -106,19 +108,23 @@
     "11": "B-CLICK_ATTRIB_NAME",
     "12": "I-CLICK_ATTRIB_NAME",
     "13": "B-CLICK_ID",
-    "14": "I-CLICK_ID"
+    "14": "I-CLICK_ID",
+    "15": "B-ELEMENT_TAG",
+    "16": "I-ELEMENT_TAG"
   },
   "intent2id": {
-    "navigate_click_by_id": 0,
-    "navigate_fill_fields": 1,
-    "navigate_fill_fields_click": 2,
-    "navigate_only": 3
+    "find_tag_text_compare": 0,
+    "navigate_click_by_id": 1,
+    "navigate_fill_fields": 2,
+    "navigate_fill_fields_click": 3,
+    "navigate_only": 4
   },
   "id2intent": {
-    "0": "navigate_click_by_id",
-    "1": "navigate_fill_fields",
-    "2": "navigate_fill_fields_click",
-    "3": "navigate_only"
+    "0": "find_tag_text_compare",
+    "1": "navigate_click_by_id",
+    "2": "navigate_fill_fields",
+    "3": "navigate_fill_fields_click",
+    "4": "navigate_only"
   },
   "templates": {
     "navigate_only": {
@@ -240,16 +246,6 @@
       "steps": [
         {
           "step_no": "__AUTO_STEP_NO__",
-          "action": "navigate",
-          "element": null,
-          "by": null,
-          "selector": null,
-          "value": "__URL__",
-          "value_from_env": null,
-          "description": "Navigate to the application URL"
-        },
-        {
-          "step_no": "__AUTO_STEP_NO__",
           "action": "assert_text",
           "element": "__TEXT_TAG__",
           "tag_name": "__TEXT_TAG__",
@@ -263,11 +259,11 @@
       ]
     }
   },
-  "max_len": 900,
+  "max_len": 700,
   "model_args": {
     "vocab_size": 73,
-    "n_labels": 15,
-    "n_intents": 4,
+    "n_labels": 17,
+    "n_intents": 5,
     "emb_dim": 96,
     "hidden_dim": 160,
     "num_layers": 2,

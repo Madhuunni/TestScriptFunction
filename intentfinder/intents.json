@@ -7999,16 +7999,6 @@
           "steps": [
             {
               "step_no": "__AUTO_STEP_NO__",
-              "action": "navigate",
-              "element": null,
-              "by": null,
-              "selector": null,
-              "value": "__URL__",
-              "value_from_env": null,
-              "description": "Navigate to the application URL"
-            },
-            {
-              "step_no": "__AUTO_STEP_NO__",
               "action": "assert_text",
               "element": "__TEXT_TAG__",
               "tag_name": "__TEXT_TAG__",

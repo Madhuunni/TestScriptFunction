@@ -16,7 +16,7 @@ from data_utils import (
     encode_text,
     load_examples,
 )
-from model import DynamicJsonNFieldsModel
+from model import IntentClassifier
 
 
 class IntentSlotDataset(Dataset):
@@ -112,7 +112,7 @@ def main():
     valid_loader = DataLoader(valid_ds, batch_size=args.batch_size)
 
     device = torch.device(args.device)
-    model = DynamicJsonNFieldsModel(
+    model = IntentClassifier(
         vocab_size=len(vocab),
         n_labels=len(LABEL2ID),
         n_intents=len(intent2id),

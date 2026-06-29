@@ -5,6 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Any
+from fastapi.middleware.cors import CORSMiddleware
+
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -22,6 +24,18 @@ from selenium.script_generator import generate_selenium_script
 
 app = FastAPI(title="Test Script Function")
 
+origins = [
+    "http://localhost:4300",
+    "http://127.0.0.1:4300",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class PromptRequest(BaseModel):
     prompt: str = Field(..., min_length=1, description="Natural language test prompt")
