@@ -29,6 +29,40 @@ def load_runtime(artifact_dir: str, device):
     return model, meta, id2label, id2intent
 
 
+INVALID_PROMPT_MESSAGE = (
+    "Prompt is invalid or out of context. Please provide a supported "
+    "web test prompt, such as navigating to a URL, filling fields, "
+    "clicking an element, or comparing element text."
+)
+
+
+def validate_intent_requirements(intent: str, parsed: Dict[str, Any]) -> str | None:
+    """Return a validation error when required prompt data is missing.
+
+    The model can emit high-confidence slots for arbitrary input (for example,
+    treating ``11111`` as a click target). Every current executable template
+    starts with a navigate step, so accepting a plan without a URL creates an
+    invalid Selenium script that fails at runtime instead of rejecting the
+    prompt up front.
+    """
+    if intent.startswith("navigate_") and not parsed.get("url"):
+        return "A supported web test prompt must include a target URL to navigate to."
+
+    if intent == "navigate_click_by_id" and not parsed.get("click_id"):
+        return "A click prompt must include a target element attribute, such as id='submit'."
+
+    if intent in {"navigate_fill_fields", "navigate_fill_fields_click"} and not parsed.get("fields"):
+        return "A fill prompt must include at least one field attribute and value."
+
+    text_assertion = parsed.get("text_assertion") or {}
+    if intent == "find_tag_text_compare" and not all(
+        text_assertion.get(key) for key in ("tag_name", "attribute_name", "id", "value")
+    ):
+        return "A text comparison prompt must include the element locator and expected text."
+
+    return None
+
+
 def predict(prompt: str, artifact_dir: str = "artifacts_nfields", repair_with_rules: bool = True, repair_intent: bool = True) -> Dict[str, Any]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model, meta, id2label, id2intent = load_runtime(artifact_dir, device)
@@ -73,11 +107,10 @@ def predict(prompt: str, artifact_dir: str = "artifacts_nfields", repair_with_ru
         if repaired_intent in meta["templates"]:
             intent = repaired_intent
         else:
-            validation_error = (
-                "Prompt is invalid or out of context. Please provide a supported "
-                "web test prompt, such as navigating to a URL, filling fields, "
-                "clicking an element, or comparing element text."
-            )
+            validation_error = INVALID_PROMPT_MESSAGE
+
+    if not validation_error and intent is not None:
+        validation_error = validate_intent_requirements(intent, parsed)
 
     if validation_error:
         return {
