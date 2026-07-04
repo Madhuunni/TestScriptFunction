@@ -41,9 +41,18 @@ class PromptRequest(BaseModel):
     prompt: str = Field(..., min_length=1, description="Natural language test prompt")
 
 
+class InvalidPromptError(ValueError):
+    """Raised when a prompt cannot be converted into a supported test plan."""
+
+
 def infer(prompt: str) -> dict[str, Any]:
     """Run intent inference for a prompt and return the generated test JSON."""
     inference = predict(prompt, artifact_dir=str(ARTIFACT_DIR))
+
+    if not inference.get("is_valid"):
+        reason = inference.get("validation_error") or "Prompt is invalid or out of context"
+        raise InvalidPromptError(reason)
+
     result_json = inference.get("json")
 
     if not isinstance(result_json, dict):
@@ -108,6 +117,8 @@ def handle_prompt(request: PromptRequest) -> dict[str, Any]:
             output_dir=str(REPO_ROOT / "generated_tests"),
         )
         execution = execute_selenium_script(script_path)
+    except InvalidPromptError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
