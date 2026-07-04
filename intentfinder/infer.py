@@ -67,10 +67,28 @@ def predict(prompt: str, artifact_dir: str = "artifacts_nfields", repair_with_ru
             parsed["text_assertion"] = repaired["text_assertion"]
 
     model_intent = intent
+    validation_error = None
     if repair_intent:
         repaired_intent = infer_intent_by_rules(prompt, parsed)
         if repaired_intent in meta["templates"]:
             intent = repaired_intent
+        else:
+            validation_error = (
+                "Prompt is invalid or out of context. Please provide a supported "
+                "web test prompt, such as navigating to a URL, filling fields, "
+                "clicking an element, or comparing element text."
+            )
+
+    if validation_error:
+        return {
+            "intent": None,
+            "model_intent": model_intent,
+            "raw_slot_lists": raw_slot_lists,
+            "parsed": parsed,
+            "json": None,
+            "is_valid": False,
+            "validation_error": validation_error,
+        }
 
     if intent != "navigate_click_by_id":
         parsed["click_id"] = None
@@ -82,6 +100,8 @@ def predict(prompt: str, artifact_dir: str = "artifacts_nfields", repair_with_ru
         "raw_slot_lists": raw_slot_lists,
         "parsed": parsed,
         "json": final_json,
+        "is_valid": True,
+        "validation_error": None,
     }
 
 
