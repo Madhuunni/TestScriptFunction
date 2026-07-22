@@ -48,7 +48,7 @@ class InvalidPromptError(ValueError):
 def infer(prompt: str) -> dict[str, Any]:
     """Run intent inference for a prompt and return the generated test JSON."""
     inference = predict(prompt, artifact_dir=str(ARTIFACT_DIR))
-
+    print(inference)
     if not inference.get("is_valid"):
         reason = inference.get("validation_error") or "Prompt is invalid or out of context"
         raise InvalidPromptError(reason)
