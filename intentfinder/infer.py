@@ -22,9 +22,18 @@ def load_runtime(artifact_dir: str, device):
 
     id2label = {int(k): v for k, v in meta["id2label"].items()}
     id2intent = {int(k): v for k, v in meta["id2intent"].items()}
-    margs = meta["model_args"]
+    margs = meta["model_args"].copy()
+
+    state_dict = torch.load(os.path.join(artifact_dir, "model.pt"), map_location=device)
+    embedding_weight = state_dict.get("embedding.weight")
+    if embedding_weight is not None:
+        checkpoint_vocab_size = int(embedding_weight.shape[0])
+        metadata_vocab_size = int(margs["vocab_size"])
+        if checkpoint_vocab_size != metadata_vocab_size:
+            margs["vocab_size"] = checkpoint_vocab_size
+
     model = IntentClassifier(**margs).to(device)
-    model.load_state_dict(torch.load(os.path.join(artifact_dir, "model.pt"), map_location=device))
+    model.load_state_dict(state_dict)
     model.eval()
     return model, meta, id2label, id2intent
 
