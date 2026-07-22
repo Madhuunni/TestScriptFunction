@@ -93,11 +93,11 @@ PAIR_PATTERNS = [
 
 CLICK_ATTR_PATTERNS = [
     re.compile(
-        rf"click[^.]{{0,80}}?(?P<attr>{ATTR_NAME})\s*=\s*['\"](?P<field_id>[^'\"]+)['\"]",
+        rf"(?:click|press|select|open|follow)[^.]{{0,80}}?(?P<attr>{ATTR_NAME})\s*=\s*['\"](?P<field_id>[^'\"]+)['\"]",
         re.IGNORECASE,
     ),
     re.compile(
-        rf"button\s+(?P<attr>{ATTR_NAME})\s*=\s*['\"](?P<field_id>[^'\"]+)['\"]",
+        rf"(?:button|anchor|link|element)\s+(?P<attr>{ATTR_NAME})\s*=\s*['\"](?P<field_id>[^'\"]+)['\"]",
         re.IGNORECASE,
     ),
 ]
