@@ -7951,7 +7951,12 @@
         "Open http://localhost:4200/login. Click the element having autocomplete='loginBtn'.",
         "Open http://127.0.0.1:3000/form. Click the element having aria-label='primary-submit'.",
         "Navigate to http://localhost:4200/login. Click button placeholder='loginBtn'.",
-        "Go to http://127.0.0.1:3000/form. Click autocomplete='loginBtn'."
+        "Go to http://127.0.0.1:3000/form. Click autocomplete='loginBtn'.",
+        "Open https://qa.portal.company.com/help. Click the link with href='/forgot-password'.",
+        "Navigate to http://localhost:4200/login. Click anchor href='/register'.",
+        "Go to http://127.0.0.1:3000/form. Click the element having href='#terms'.",
+        "Visit https://demo.service.net/start. Click link href='https://demo.service.net/docs'.",
+        "Launch http://app.internal:8080/dashboard. Press the anchor having href='/settings/profile'."
       ],
       "responses": [
         {
@@ -7971,13 +7976,13 @@
             {
               "step_no": "__AUTO_STEP_NO__",
               "action": "click",
-              "element": "__CLICK_ID__ button",
+              "element": "click target",
               "attribute_name": "__CLICK_ATTRIB_NAME__",
               "by": "css selector",
-              "selector": "button[__CLICK_ATTRIB_NAME__='__CLICK_ID__']",
+              "selector": "[__CLICK_ATTRIB_NAME__='__CLICK_ID__']",
               "value": null,
               "value_from_env": null,
-              "description": "Click the button using dynamic attribute selector"
+              "description": "Click the element using dynamic attribute selector"
             }
           ]
         }

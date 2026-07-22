@@ -230,13 +230,13 @@
         {
           "step_no": "__AUTO_STEP_NO__",
           "action": "click",
-          "element": "__CLICK_ID__ button",
+          "element": "click target",
           "attribute_name": "__CLICK_ATTRIB_NAME__",
           "by": "css selector",
-          "selector": "button[__CLICK_ATTRIB_NAME__='__CLICK_ID__']",
+          "selector": "[__CLICK_ATTRIB_NAME__='__CLICK_ID__']",
           "value": null,
           "value_from_env": null,
-          "description": "Click the button using dynamic attribute selector"
+          "description": "Click the element using dynamic attribute selector"
         }
       ]
     },
