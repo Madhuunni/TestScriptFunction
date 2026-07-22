@@ -7952,11 +7952,11 @@
         "Open http://127.0.0.1:3000/form. Click the element having aria-label='primary-submit'.",
         "Navigate to http://localhost:4200/login. Click button placeholder='loginBtn'.",
         "Go to http://127.0.0.1:3000/form. Click autocomplete='loginBtn'.",
-        "Open https://qa.portal.company.com/help. Click the link with href='/forgot-password'.",
-        "Navigate to http://localhost:4200/login. Click anchor href='/register'.",
-        "Go to http://127.0.0.1:3000/form. Click the element having href='#terms'.",
-        "Visit https://demo.service.net/start. Click link href='https://demo.service.net/docs'.",
-        "Launch http://app.internal:8080/dashboard. Press the anchor having href='/settings/profile'."
+        "Open https://qa.portal.company.com/help. Click the link with id='forgotPasswordLink'.",
+        "Navigate to http://localhost:4200/login. Click anchor id='registerLink'.",
+        "Go to http://127.0.0.1:3000/form. Click the element having id='termsLink'.",
+        "Visit https://demo.service.net/start. Click link id='docsLink'.",
+        "Launch http://app.internal:8080/dashboard. Press the anchor having id='settingsProfileLink'."
       ],
       "responses": [
         {
